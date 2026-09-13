@@ -1,0 +1,6 @@
+{
+  "name": "Peavey Coffee",
+  "description": "Toko online kopi Indonesia pilihan dari Sabang sampai Merauke berbasis di Dago, Bandung dengan fitur keranjang, payment gateway, pelacakan pesanan real-time, dan customer experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
