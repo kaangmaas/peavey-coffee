@@ -31,8 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const navLinks = [
-    { id: 'beranda', label: 'Beranda' },
-    { id: 'products', label: 'Produk Kopi' },
+    { id: 'beranda', label: 'Beranda & Kopi' },
     { id: 'about', label: 'Tentang Kami' },
     { id: 'experience', label: 'Customer Experience' },
     { id: 'tracking', label: 'Lacak Pesanan' },

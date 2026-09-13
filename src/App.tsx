@@ -11,18 +11,27 @@ import { AboutUsSection } from './components/AboutUsSection';
 import { CustomerExperienceSection } from './components/CustomerExperienceSection';
 import { OrderTrackingSection } from './components/OrderTrackingSection';
 import { ContactUsSection } from './components/ContactUsSection';
+import { PageHeader } from './components/PageHeader';
 import { CartDrawer } from './components/CartDrawer';
 import { PaymentModal } from './components/PaymentModal';
 import { Footer } from './components/Footer';
 import { Product, GrindOption, PackageWeight, CartItem, Order } from './types';
 import { WEIGHT_OPTIONS } from './data/coffeeProducts';
-import { Check, Coffee, ShoppingBag, Truck } from 'lucide-react';
+import { Check, Coffee, ShoppingBag, Truck, Star, Users, ArrowRight, ShieldCheck, Heart } from 'lucide-react';
 
 const INITIAL_CART_KEY = 'peavey_cart_items';
 const INITIAL_ORDERS_KEY = 'peavey_orders';
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState<string>('beranda');
+  // Page Routing State: 'beranda' | 'about' | 'experience' | 'tracking' | 'contact'
+  const [activeSection, setActiveSection] = useState<string>(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (['about', 'experience', 'tracking', 'contact'].includes(hash)) {
+      return hash;
+    }
+    return 'beranda';
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState<number>(0);
@@ -34,9 +43,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem(INITIAL_CART_KEY);
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      // Fallback
-    }
+    } catch (e) {}
     return [];
   });
 
@@ -45,11 +52,45 @@ export default function App() {
     try {
       const saved = localStorage.getItem(INITIAL_ORDERS_KEY);
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      // Fallback
-    }
+    } catch (e) {}
     return [];
   });
+
+  // Keep hash in sync with activeSection
+  useEffect(() => {
+    if (activeSection === 'beranda') {
+      history.replaceState(null, '', window.location.pathname);
+      document.title = 'Peavey Coffee - Harmoni Kopi Nusantara Dago Bandung';
+    } else if (activeSection === 'about') {
+      window.location.hash = 'about';
+      document.title = 'Tentang Kami | Peavey Coffee Roastery Dago';
+    } else if (activeSection === 'experience') {
+      window.location.hash = 'experience';
+      document.title = 'Customer Experience & Testimoni | Peavey Coffee';
+    } else if (activeSection === 'tracking') {
+      window.location.hash = 'tracking';
+      document.title = 'Pelacakan Pesanan Real-Time | Peavey Coffee';
+    } else if (activeSection === 'contact') {
+      window.location.hash = 'contact';
+      document.title = 'Kontak & Roastery Dago | Peavey Coffee';
+    }
+  }, [activeSection]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (['about', 'experience', 'tracking', 'contact'].includes(hash)) {
+        setActiveSection(hash);
+      } else {
+        setActiveSection('beranda');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Save Cart to LocalStorage
   useEffect(() => {
@@ -144,37 +185,33 @@ export default function App() {
     setCartItems([]);
     setIsPaymentOpen(false);
     setActiveOrderId(newOrder.orderId);
+    
+    // Switch to dedicated tracking page
     setActiveSection('tracking');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Smooth scroll to tracking section
-    setTimeout(() => {
-      const trackingEl = document.getElementById('tracking');
-      if (trackingEl) {
-        trackingEl.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 150);
-
-    showToast(`🎉 Pembayaran Berhasil! Pesanan ${newOrder.orderId} sedang diproses.`);
+    showToast(`🎉 Pembayaran Berhasil! Mengalihkan ke Halaman Pelacakan Pesanan.`);
   };
 
   const handleNavigate = (sectionId: string) => {
-    setActiveSection(sectionId);
-    if (sectionId === 'beranda') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (sectionId === 'products') {
+      // If products is selected, switch to beranda and scroll to products section
+      setActiveSection('beranda');
+      setTimeout(() => {
+        const el = document.getElementById('products');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        else window.scrollTo({ top: 400, behavior: 'smooth' });
+      }, 50);
       return;
     }
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+
+    setActiveSection(sectionId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenTracking = () => {
     setActiveSection('tracking');
-    const el = document.getElementById('tracking');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -198,7 +235,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Navbar */}
+      {/* Main Navbar with Navigation */}
       <Navbar
         cartCount={totalCartCount}
         onOpenCart={() => setIsCartOpen(true)}
@@ -208,31 +245,176 @@ export default function App() {
         savedFavoritesCount={0}
       />
 
+      {/* Main Content: Rendered based on Active Page */}
       <main className="flex-1">
-        {/* 1. Hero Banner */}
-        <HeroBanner
-          onExploreProducts={() => handleNavigate('products')}
-          onOpenTracking={handleOpenTracking}
-          onExploreExperience={() => handleNavigate('experience')}
-        />
+        {/* ========================================================
+            PAGE 1: HOME PAGE (Beranda Toko & Galeri 19 Kopi Nusantara)
+            Clean, fast, and not overly long!
+           ======================================================== */}
+        {activeSection === 'beranda' && (
+          <div className="animate-fadeIn">
+            {/* 1. Hero Banner */}
+            <HeroBanner
+              onExploreProducts={() => {
+                const el = document.getElementById('products');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onOpenTracking={handleOpenTracking}
+              onExploreExperience={() => handleNavigate('experience')}
+            />
 
-        {/* 2. Menu: Product / Jasa (19 Indonesian Coffees) */}
-        <ProductSection onAddToCart={handleAddToCart} />
+            {/* 2. Menu: Product / Jasa (19 Indonesian Coffees with filter, search & modal) */}
+            <ProductSection onAddToCart={handleAddToCart} />
 
-        {/* 3. Menu: About Us (Makna Nama & Logo, Visi Misi, Peta Kopi) */}
-        <AboutUsSection />
+            {/* 3. Compact Navigation Cards (Quick links to dedicated pages) */}
+            <section className="py-12 sm:py-16 bg-[#f3eae0] border-t border-[#ded0bf]">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center max-w-2xl mx-auto mb-8">
+                  <span className="text-xs font-bold text-[#8e421e] uppercase tracking-wider block mb-1">
+                    Jelajahi Lebih Lanjut
+                  </span>
+                  <h3 className="font-serif-display text-2xl sm:text-3xl font-bold text-[#2b170e]">
+                    Pengalaman Lengkap Peavey Coffee
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#705241] mt-1">
+                    Buka halaman khusus untuk mengenal cerita roastery kami, ulasan pelanggan, serta melacak paket kopi Anda.
+                  </p>
+                </div>
 
-        {/* 4. Menu: Customer Experience (Rizki Review, User Photo Gallery, Review System) */}
-        <CustomerExperienceSection />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {/* Card 1: Tentang Kami */}
+                  <div className="bg-white rounded-2xl p-6 border border-[#ded0be] shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-[#faeee2] text-[#8e421e] flex items-center justify-center font-bold mb-4">
+                        <Coffee className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-serif-display font-bold text-lg text-[#2b170e]">
+                        Tentang Kami (About Us)
+                      </h4>
+                      <p className="text-xs text-[#6e503f] mt-2 leading-relaxed">
+                        Pelajari makna nama Peavey, filosofi logo, visi & misi, serta peta 7 asal-usul varietas kopi nusantara kami.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNavigate('about')}
+                      className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-[#963f17] hover:text-[#6e2c0e] group"
+                    >
+                      <span>Buka Halaman Tentang Kami</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
 
-        {/* 5. Real-Time Order Tracking (Interactive Stepper & Simulation) */}
-        <OrderTrackingSection
-          initialOrders={orders}
-          activeOrderId={activeOrderId}
-        />
+                  {/* Card 2: Customer Experience */}
+                  <div className="bg-white rounded-2xl p-6 border border-[#ded0be] shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold mb-4">
+                        <Star className="w-5 h-5 text-amber-700" />
+                      </div>
+                      <h4 className="font-serif-display font-bold text-lg text-[#2b170e]">
+                        Customer Experience
+                      </h4>
+                      <p className="text-xs text-[#6e503f] mt-2 leading-relaxed">
+                        Baca testimoni dari Rizki & penikmat manual brew lainnya, jelajahi galeri foto komunitas, atau tulis ulasan Anda.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNavigate('experience')}
+                      className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-[#963f17] hover:text-[#6e2c0e] group"
+                    >
+                      <span>Buka Customer Experience</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
 
-        {/* 6. Menu: Contact Us (Dago Bandung, WhatsApp, Email, Instagram) */}
-        <ContactUsSection />
+                  {/* Card 3: Lacak Pesanan Real-Time */}
+                  <div className="bg-white rounded-2xl p-6 border border-[#ded0be] shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold mb-4">
+                        <Truck className="w-5 h-5 text-emerald-700" />
+                      </div>
+                      <h4 className="font-serif-display font-bold text-lg text-[#2b170e]">
+                        Lacak Pesanan Real-Time
+                      </h4>
+                      <p className="text-xs text-[#6e503f] mt-2 leading-relaxed">
+                        Pantau status paket kopi Anda dari proses sangrai di Dago hingga diserahkan kurir ke pintu rumah Anda.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNavigate('tracking')}
+                      className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-[#963f17] hover:text-[#6e2c0e] group"
+                    >
+                      <span>Buka Pelacakan Pesanan</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ========================================================
+            PAGE 2: DEDICATED ABOUT US PAGE
+           ======================================================== */}
+        {activeSection === 'about' && (
+          <div className="animate-fadeIn">
+            <PageHeader
+              title="Tentang Peavey Coffee"
+              subtitle="Makna nama Peavey, filosofi logo kami, visi dan misi jangka panjang, serta eksplorasi 7 wilayah penghasil biji kopi terbaik di Nusantara."
+              badge="Cerita Roastery Dago"
+              onBackToHome={() => handleNavigate('beranda')}
+            />
+            <AboutUsSection />
+          </div>
+        )}
+
+        {/* ========================================================
+            PAGE 3: DEDICATED CUSTOMER EXPERIENCE PAGE
+           ======================================================== */}
+        {activeSection === 'experience' && (
+          <div className="animate-fadeIn">
+            <PageHeader
+              title="Customer Experience & Testimoni"
+              subtitle="Cerita otentik para pecinta kopi, ulasan seduhan dari pembeli terverifikasi (termasuk pengalaman Rizki di Bandung), dan galeri foto pengguna."
+              badge="Kepercayaan Pelanggan"
+              onBackToHome={() => handleNavigate('beranda')}
+            />
+            <CustomerExperienceSection />
+          </div>
+        )}
+
+        {/* ========================================================
+            PAGE 4: DEDICATED ORDER TRACKING PAGE
+           ======================================================== */}
+        {activeSection === 'tracking' && (
+          <div className="animate-fadeIn">
+            <PageHeader
+              title="Pelacakan Pesanan Real-Time"
+              subtitle="Transparansi tanpa jeda: pantau status pemrosesan biji kopi Anda mulai dari verifikasi pembayaran, sangrai profil khusus di Dago, nitrogen packaging, hingga kurir tiba di tujuan."
+              badge="Live Logistics Tracker"
+              onBackToHome={() => handleNavigate('beranda')}
+            />
+            <OrderTrackingSection
+              initialOrders={orders}
+              activeOrderId={activeOrderId}
+            />
+          </div>
+        )}
+
+        {/* ========================================================
+            PAGE 5: DEDICATED CONTACT US PAGE
+           ======================================================== */}
+        {activeSection === 'contact' && (
+          <div className="animate-fadeIn">
+            <PageHeader
+              title="Kontak & Roastery Peavey Coffee"
+              subtitle="Kunjungi workshop sangrai kami di Dago Bandung, konsultasikan kebutuhan biji kopi kafe Anda, atau hubungi barista kami langsung via WhatsApp dan Email."
+              badge="Layanan Pelanggan & Lokasi"
+              onBackToHome={() => handleNavigate('beranda')}
+            />
+            <ContactUsSection />
+          </div>
+        )}
       </main>
 
       {/* Shopping Cart Slide-out Drawer */}
